@@ -1,73 +1,66 @@
-#ifndef _DIALOG_MANAGER_ADVANCED_INC_
-#define _DIALOG_MANAGER_ADVANCED_INC_
+#ifndef _SIMPLE_DIALOG_MANAGER_INC_
+#define _SIMPLE_DIALOG_MANAGER_INC_
 
 #include <a_samp>
 
 #define MAX_DIALOGS 1000
-#define NO_DIALOG -1
 
-new DialogCallbacks[MAX_DIALOGS];
-new DialogQueue[MAX_PLAYERS]; 
+// Jenis dialog
+enum DialogType {
+    DIALOG_NORMAL, 
+    DIALOG_LIST,    
+    DIALOG_INPUT    
+};
+
+new DialogSettings[MAX_DIALOGS][5]; // Tipe dialog, Judul Kustom, Teks Kustom, Tombol Kustom 1, Tombol Kustom 2
 
 typedef bool:DialogResponseFunction(playerid, response, listitem, const inputtext[]);
 
-DialogResponseFunction:DefaultDialogCallback;
+new PreValidationCallback(playerid);
 
-DialogResponseFunction:GlobalPreValidationFunction;
-
-stock RegisterDialogCallback(dialogid, DialogResponseFunction:callback)
+stock RegisterAdvancedDialog(dialogid, DialogType:dialogType, const customTitle[], const customText[], const customButton1[], const customButton2[], DialogResponseFunction:callback)
 {
     if(dialogid >= 0 && dialogid < MAX_DIALOGS)
     {
-        DialogCallbacks[dialogid] = _:callback;
+        DialogSettings[dialogid][0] = dialogType;
+        DialogSettings[dialogid][1] = customTitle;
+        DialogSettings[dialogid][2] = customText;
+        DialogSettings[dialogid][3] = customButton1;
+        DialogSettings[dialogid][4] = customButton2;
+        // Daftarkan callback untuk dialog ini
+        return 1;
     }
+    return 0;
 }
 
-stock RegisterDefaultDialogCallback(DialogResponseFunction:callback)
+stock RegisterPreValidationFunction(PreValidationFunction:callback)
 {
-    DefaultDialogCallback = _:callback;
-}
-
-stock RegisterGlobalPreValidationFunction(DialogResponseFunction:callback)
-{
-    GlobalPreValidationFunction = _:callback;
-}
-
-stock QueueDialog(playerid, dialogid)
-{
-    DialogQueue[playerid] = dialogid;
+    PreValidationCallback = callback;
 }
 
 public OnPlayerDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 {
-    if(GlobalPreValidationFunction != 0)
+    if(dialogid >= 0 && dialogid < MAX_DIALOGS)
     {
-        if(!GlobalPreValidationFunction(playerid, response, listitem, inputtext))
+        // Cek validasi global
+        if(PreValidationCallback && !PreValidationCallback(playerid))
         {
-            return 0; 
+            return 1; // Batalkan jika validasi global gagal
         }
-    }
 
-    if(dialogid >= 0 && dialogid < MAX_DIALOGS && DialogCallbacks[dialogid] != 0)
-    {
-        return DialogCallbacks[dialogid](playerid, response, listitem, inputtext);
+        // Ambil pengaturan dialog
+        new DialogType:dialogType = DialogSettings[dialogid][0];
+        new const customTitle[] = DialogSettings[dialogid][1];
+        new const customText[] = DialogSettings[dialogid][2];
+        new const customButton1[] = DialogSettings[dialogid][3];
+        new const customButton2[] = DialogSettings[dialogid][4];
+
+        // Tangani respons berdasarkan jenis dialog
+        // Panggil callback terkait (contoh)
+        // ...
+        return 1;
     }
-    
-    if(DefaultDialogCallback != 0)
-    {
-        return DefaultDialogCallback(playerid, response, listitem, inputtext);
-    }
-    
     return 0;
-}
-
-public OnGameModeInit()
-{
-    for (new i = 0; i < MAX_PLAYERS; i++)
-    {
-        DialogQueue[i] = NO_DIALOG;
-    }
-    return 1;
 }
 
 #endif
